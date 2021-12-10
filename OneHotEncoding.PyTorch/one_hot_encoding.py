@@ -139,6 +139,8 @@ def test(a):
 
 
 if __name__ == "__main__":
+    print(torch.__version__, torch.cuda.get_device_name())
+
     num_classes = 20
     data = dict(
         cpu=torch.randint(high=num_classes, low=0, size=(4, 1000, 1000), dtype=torch.long),
@@ -147,10 +149,9 @@ if __name__ == "__main__":
     for dev, a in data.items():
         print(dev)
 
-        if a.is_cuda:
-            # warmup
-            for _ in range(5):
-                test(a)
+        # warmup
+        for _ in range(5):
+            test(a)
 
         b, b1, c, c1, d, e, times = test(a)
         for t in times:
