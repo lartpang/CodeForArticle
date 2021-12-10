@@ -84,40 +84,77 @@ def bhw_to_onehot_by_index_select(bhw_tensor: torch.Tensor, num_classes: int):
     return one_hot
 
 
+def test(a):
+    times = []
+
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    start = time.time()
+    b = bhw_to_onehot_by_for(a, num_classes=num_classes)
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    times.append(("bhw_to_onehot_by_for", time.time() - start))
+
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    start = time.time()
+    b1 = bhw_to_onehot_by_for_V1(a, num_classes=num_classes)
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    times.append(("bhw_to_onehot_by_for_V1", time.time() - start))
+
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    start = time.time()
+    c = bhw_to_onehot_by_scatter(a, num_classes=num_classes)
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    times.append(("bhw_to_onehot_by_scatter", time.time() - start))
+
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    start = time.time()
+    c1 = bhw_to_onehot_by_scatter_V1(a, num_classes=num_classes)
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    times.append(("bhw_to_onehot_by_scatter_V1", time.time() - start))
+
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    start = time.time()
+    d = bhw_to_onehot_by_index_select(a, num_classes=num_classes)
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    times.append(("bhw_to_onehot_by_index_select", time.time() - start))
+
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    start = time.time()
+    e = one_hot(a, num_classes=num_classes)
+    if a.is_cuda:
+        torch.cuda.synchronize()
+    times.append(("F.one_hot", time.time() - start))
+
+    return b, b1, c, c1, d, e, times
+
+
 if __name__ == "__main__":
     num_classes = 20
     data = dict(
         cpu=torch.randint(high=num_classes, low=0, size=(4, 1000, 1000), dtype=torch.long),
         gpu=torch.randint(high=num_classes, low=0, size=(4, 1000, 1000), dtype=torch.long).cuda(),
     )
-
     for dev, a in data.items():
         print(dev)
 
-        start = time.time()
-        b = bhw_to_onehot_by_for(a, num_classes=num_classes)
-        print("bhw_to_onehot_by_for", time.time() - start)
+        if a.is_cuda:
+            # warmup
+            for _ in range(5):
+                test(a)
 
-        start = time.time()
-        b1 = bhw_to_onehot_by_for_V1(a, num_classes=num_classes)
-        print("bhw_to_onehot_by_for_V1", time.time() - start)
-
-        start = time.time()
-        c = bhw_to_onehot_by_scatter(a, num_classes=num_classes)
-        print("bhw_to_onehot_by_scatter", time.time() - start)
-
-        start = time.time()
-        c1 = bhw_to_onehot_by_scatter_V1(a, num_classes=num_classes)
-        print("bhw_to_onehot_by_scatter_V1", time.time() - start)
-
-        start = time.time()
-        d = bhw_to_onehot_by_index_select(a, num_classes=num_classes)
-        print("bhw_to_onehot_by_index_select", time.time() - start)
-
-        start = time.time()
-        e = one_hot(a, num_classes=num_classes)
-        print("one_hot", time.time() - start)
-
+        b, b1, c, c1, d, e, times = test(a)
+        for t in times:
+            print(t)
         print(torch.all(torch.isclose(e, b)))
         print(torch.all(torch.isclose(e, b1)))
         print(torch.all(torch.isclose(e, c)))
