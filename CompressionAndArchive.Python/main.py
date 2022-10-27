@@ -409,7 +409,26 @@ def tar_compression(start_root, src_root, tgt_file, new_src_root1, new_src_root2
 
         with tarfile.open(tgt_file, "r") as tar:
             # 如果给定了可选的 members，则它必须为 getmembers() 所返回的列表的一个子集。
-            tar.extractall(path=new_src_root2, members=None)
+            def is_within_directory(directory, target):
+                
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+            
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+                
+                return prefix == abs_directory
+            
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+            
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+            
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
+                
+            
+            safe_extract(tar, path=new_src_root2, members="None")
     else:
         # 在直接使用终端指令处理时，tar存档中存放的成员名字均是实际基于存档文件名后跟的目录进行扩展的
         # 所以使用终端指令最好就是直接在要打包的目录或者文件处执行打包。
